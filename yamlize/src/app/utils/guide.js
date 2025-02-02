@@ -1,0 +1,146 @@
+export const guide = {
+  sections: [
+    {
+      section_id: "network-configuration",
+      title: "Network Configuration",
+      description:
+        "Defines networking settings for deployments, determining how workloads connect and are accessed externally.",
+      content:
+        "The Infrastructure Composition Language (ICL) file allows you to define networking settings for your deployment. This determines how workloads can connect to each other and be accessed externally. By default, workloads within a deployment group are isolated, meaning no external connections are permitted. However, these restrictions can be adjusted as needed.",
+    },
+    {
+      section_id: "version-configuration",
+      title: "Version Configuration",
+      description: "Specifies the version of the Spheron configuration file.",
+      content:
+        'The Spheron configuration file requires a version specification. At present, the only accepted value is "1.0".',
+    },
+    {
+      section_id: "services-configuration",
+      title: "Services Configuration",
+      description:
+        "Defines the workloads for Spheron deployment, including Docker images, commands, environment variables, and port exposure.",
+      subsections: [
+        {
+          subsection_id: "environment-variables",
+          title: "Environment Variables",
+          description:
+            "Allows setting environment variables for the running container.",
+          content:
+            "The env field allows you to specify a list of environment variables that will be made available to the running container. These variables are defined in a key-value format. For example:\n\nenv:\n  - WALLET_ADDR=0xabcdedghijke\n  - VERSION=1.0",
+        },
+        {
+          subsection_id: "port-exposure",
+          title: "Port Exposure",
+          description:
+            "Configures which entities are permitted to connect to the services.",
+          content:
+            "When configuring port exposure for your services, keep these points in mind:\n- HTTPS Support: Spheron deployments can use HTTPS, but only with self-signed certificates.\n- Signed Certificates: To implement properly signed certificates, you'll need to use a third-party solution like Cloudflare as a front-end.\n- Flexible Port Mapping: You're not limited to just port 80 for HTTP/HTTPS ingress. You can expose other ports and map them to port 80 using the as: 80 directive, provided your application understands HTTP/HTTPS protocols. This is particularly useful for applications like React web apps.\n- Simplified Port Exposure: In the ICL, it's only required to expose port 80 for web applications. However, this setup specifies that both ports 80 and 443 are exposed.\n\nExample:\n\n- port: 3000\n  as: 80\n  to:\n    - global: true\n  accept:\n    - www.yoursite.com",
+        },
+        {
+          subsection_id: "port-range",
+          title: "Port Range",
+          description: "Specifies a range of ports for fizz node deployments.",
+          content:
+            "Note: The port range is only applicable for fizz node deployments when the mode is set to fizz. For fizz node deployments, the exposed port cannot be 80 or 443, as fizz nodes don't have an ingress to create subdomain-based deployment links for users.\n\nWhen deploying to fizz nodes, you can specify a port range using the port_range and port_range_as fields. Here's an example:\n\n- port_range: 8443-8445\n  port_range_as: 8443-8445\n  to:\n    - global: true\n\nYou can specify either port, port_range, or both, but make sure to specify at least one of them.",
+        },
+        {
+          subsection_id: "pull-policy",
+          title: "Pull Policy",
+          description:
+            "Specifies how the container runtime should handle pulling the image for your service.",
+          content:
+            "The pull_policy field allows you to specify how the container runtime should handle pulling the image for your service. This can be particularly useful when working with frequently updated images or when you want to ensure you're always using the latest version.\n\nThere are three possible values for pull_policy:\n- Always: The image is pulled every time the pod is started or restarted.\n- IfNotPresent: The image is pulled only if it's not already present on the node.\n- Never: The image is never pulled, and the deployment will fail if the image isn't already present on the node.\n\nExample usage:\n\nservices:\n  myapp:\n    image: myregistry.com/myuser/myapp:latest\n    pull_policy: Always",
+        },
+      ],
+    },
+    {
+      section_id: "profiles",
+      title: "Profiles",
+      description:
+        "Defines named compute and placement profiles for deployment, including resource allocation and pricing.",
+      subsections: [
+        {
+          subsection_id: "compute-profiles",
+          title: "Compute Profiles",
+          description:
+            "Specifies the compute resources allocated to service instances.",
+          content:
+            'Within profiles.compute, you can create a map of named compute profiles. Each profile specifies the compute resources that will be allocated to service instances using that profile.\n\nExample:\n\napi:\n  cpu: 2\n  memory: "4Gi"\n  storage: "20Gi"\n\ncpu units indicate a vCPU share, which can be fractional. Without a suffix, the value denotes a fraction of a whole CPU share. If an m suffix is used, the value specifies the number of milli-CPU shares, which equals 1/1000 of a CPU share.\n\nExample:\n\nValue\tCPU-Share\n1\t1\n0.5\t1/2\n"100m"\t1/10\n"50m"\t1/20\n\nmemory and storage units are expressed in terms of bytes, with specific suffixes utilized to simplify their representation as follows:\n\nSuffix\tValue\nk\t1000\nKi\t1024\nM\t1000^2\nMi\t1024^2\nG\t1000^3\nGi\t1024^3\nT\t1000^4\nTi\t1024^4\nP\t1000^5\nPi\t1024^5\nE\t1000^6\nEi\t1024^6',
+        },
+        {
+          subsection_id: "placement-profiles",
+          title: "Placement Profiles",
+          description:
+            "Outlines datacenter attributes and pricing configuration for deployments.",
+          content:
+            'profiles.placement is a map of named datacenter profiles. Each profile outlines the necessary datacenter attributes and the pricing configuration for each compute profile that will be utilized within the datacenter.\n\nExample:\n\nuseast:\n  attributes:\n    region: us-east\n  pricing:\n    web:\n      token: USDT\n      amount: 80\n\nThis defines a profile named useast with the required attributes {region="us-east"} and a maximum price of 80 USDT per hour for the web compute profiles.',
+        },
+      ],
+    },
+    {
+      section_id: "deployment-configuration",
+      title: "Deployment Configuration",
+      description:
+        "Defines the specific deployment strategy for services, combining datacenter profiles with compute profiles.",
+      content:
+        "The deployment section is where you define the specific deployment strategy for your services. It's structured as a map, with each service name corresponding to its deployment configuration.\n\nFor each service you want to deploy, you create an entry in the deployment section. This entry combines datacenter profiles with compute profiles to specify the final resource configuration for the service.\n\nExample:\n\napi:\n  useast:\n    profile: api\n    count: 30\n\nThis specifies that 30 instances of the api service should be deployed to a datacenter that matches the useast datacenter profile. Each instance will have access to the resources defined in the api compute profile.",
+    },
+    {
+      section_id: "gpu-integration-support",
+      title: "GPU Integration Support",
+      description:
+        "Adds GPU support to compute profiles for workloads requiring GPU resources.",
+      content:
+        "You can add GPUs to your workload by including them in the compute profile section. The placement of the GPU stanza is illustrated in the full compute profile example below.\n\nNote: When specifying the GPU model, such as h100 in this example, ensure that the model name matches the conventions listed in the provided reference.\n\nExample:\n\nprofiles:\n  compute:\n    gpudep:\n      resources:\n        cpu:\n          units: 8.0\n        memory:\n          size: 12Gi\n        storage:\n          size: 10Gi\n        gpu:\n          units: 1\n          attributes:\n            vendor:\n              nvidia:\n                - model: a100",
+    },
+    {
+      section_id: "private-container-registry-integration",
+      title: "Private Container Registry Integration",
+      description:
+        "Supports the use of private container registries for secure image deployment.",
+      content:
+        'Spheron Network now supports private container registries, allowing you to use images from your private repositories securely in your deployments. This feature enhances security and flexibility for users who need to work with proprietary or sensitive container images.\n\nConfiguring Private Registry Access:\n\nservices:\n  myapp:\n    image: myregistry.com/myuser/myapp:latest\n    credentials:\n      registry: myregistry.com\n      username: myusername\n      password: "mysecretpassword"\n    expose:\n      - port: 3000\n        as: 80\n        to:\n          - global: true',
+    },
+    {
+      section_id: "shared-memory-shm-support",
+      title: "Shared Memory (SHM) Support",
+      description:
+        "Configures shared memory for services requiring high-speed inter-process communication.",
+      content:
+        "Spheron's Infrastructure Composition Language (ICL) now supports the configuration of Shared Memory (SHM) for services that require inter-process communication or temporary file storage with high-speed access. This feature is particularly useful for applications that need to share data quickly between multiple processes within the same container.\n\nConfiguring SHM in Compute Profiles:\n\nprofiles:\n  compute:\n    myapp:\n      resources:\n        cpu:\n          units: 2\n        memory:\n          size: 2Gi\n        storage:\n          - size: 10Gi\n          - name: sharedmem\n            size: 2Gi\n            attributes:\n              persistent: false\n              class: ram",
+    },
+    {
+      section_id: "advanced-placement-attributes",
+      title: "Advanced Placement Attributes",
+      description:
+        "Allows precise control over deployment locations using advanced placement attributes.",
+      content:
+        'Spheron allows you to precisely control where your applications are deployed using advanced placement attributes. These settings help you target specific regions, providers, or nodes for your deployments.\n\nAvailable Attributes:\n1. Region Selection:\n\nattributes:\n  region: us-east\n\n2. Provider Selection:\n\nattributes:\n  desired_provider: "0x1234...5678"  # Replace with actual provider address\n\n3. Fizz Node Selection:\n\nattributes:\n  desired_fizz: "0xabcd...ef12"  # Replace with actual fizz node address\n\nCombining Attributes:\n\nprofiles:\n  placement:\n    useast:\n      attributes:\n        region: us-east\n        desired_provider: "0x1234...5678"\n        desired_fizz: "0xabcd...ef12"\n      pricing:\n        web:\n          token: USDT\n          amount: 8',
+    },
+    {
+      section_id: "lease-duration",
+      title: "Lease Duration",
+      description: "Defines the duration of the lease (e.g., 1s, 1d, 1y).",
+      content:
+        "During the deployment, you also pass a duration to run the deployment, which can be specified in 1s, 1min, 1h, 1d, 1mon, or 1y. This specifies how long the lease should run and accordingly locks funds to continue running the deployment. If you close the deployment prematurely, the unused funds will be unlocked.",
+    },
+    {
+      section_id: "deployment-tier",
+      title: "Deployment Tier",
+      description:
+        "Specifies the tiers of providers for deployment, including Secured Tier (Tiers 1-3) and Community Tier (Tiers 4-7).",
+      content:
+        "During deployment, you have the option to specify the tiers on which you want your deployment to be placed, whether on a specific or generalized provider tier. This feature is beneficial for developers who need high reliability and are willing to pay a premium for high-tier providers. Conversely, users with less critical requirements can choose lower-tier providers at a reduced cost.\n\nWe have two general tiers: Secured and Community.\n- Secured Tier: This tier consists of high-tier providers who have consistently demonstrated high uptime in the network. It includes Provider Tiers 1 to 3.\n- Community Tier: This tier consists of lower-tier providers who have recently joined the network or have less reliable hardware. It includes Provider Tiers 4 to 7.\n\nTo deploy your services on any tier, use the following values:\n\nTier\tDetails\nsecured\tCan be deployed on Provider Tiers 1 to 3.\ncommunity\tCan be deployed on Provider Tiers 4 to 7.\nsecured-1\tSpecifically deployed on Provider Tier 1.\nsecured-2\tSpecifically deployed on Provider Tier 2.\nsecured-3\tSpecifically deployed on Provider Tier 3.\ncommunity-1\tSpecifically deployed on Provider Tier 4.\ncommunity-2\tSpecifically deployed on Provider Tier 5.\ncommunity-3\tSpecifically deployed on Provider Tier 6.\ncommunity-4\tSpecifically deployed on Provider Tier 7.\n\nNote: Users can specify multiple tiers during deployment, and the matchmaker will select the best possible provider based on the specified requirements and other parameters.",
+    },
+    {
+      section_id: "provider-mode-vs-fizz-mode",
+      title: "Provider Mode vs Fizz Mode",
+      description:
+        "Compares the two deployment modes offered by Spheron, highlighting their differences and use cases.",
+      content:
+        "Spheron offers two distinct deployment modes, each designed for different use cases and requirements:\n\nProvider Mode:\n- Enterprise-grade infrastructure\n- High reliability and stability\n- Production-ready environment\n- Higher resource availability\n- Premium features and capabilities\n\nFizz Mode:\n- Consumer-grade distributed network\n- Cost-effective solution\n- Community-driven infrastructure\n- Suitable for testing and development\n- Basic feature set\n\nDetailed Comparison:\n1. Networking Features:\n- Provider Mode supports ports 80 and 443, built-in HTTPS with self-signed certificates, and subdomain-based access.\n- Fizz Mode cannot use ports 80/443, has no built-in HTTPS, but supports port ranges.\n2. Resource Management:\n- Provider Mode offers high resource limits, GPU support, and shared memory (SHM) support.\n- Fizz Mode has limited resource availability and no SHM support.\n3. Logging and Monitoring:\n- Provider Mode provides real-time log streaming and advanced filtering options.\n- Fizz Mode offers basic logging capabilities and startup logs.\n4. Deployment Updates:\n- Provider Mode allows dynamic resource scaling and zero-downtime updates.\n- Fizz Mode may require redeployment to update resource specifications.",
+    },
+  ],
+  uncategorizedSections: [],
+};
